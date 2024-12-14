@@ -1,3 +1,38 @@
+CREATE TABLE Artists (
+    ArtistID SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Country VARCHAR(100),
+    YearsActive VARCHAR(50),
+    Biography TEXT
+);
+
+CREATE TABLE Exhibits (
+    ExhibitID SERIAL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    ArtistID INT REFERENCES Artists(ArtistID),
+    YearCreated INTEGER,
+    Style VARCHAR(100),
+    Description TEXT
+);
+
+CREATE TABLE Events (
+    EventID SERIAL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    Date DATE,
+    Time TIME,
+    Location VARCHAR(255),
+    Organizer VARCHAR(255),
+    ParticipantCount INTEGER DEFAULT 0
+);
+
+CREATE TABLE Users (
+    UserID SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    RegisteredEvents TEXT,
+    Feedback TEXT
+);
+
 -- Процедуры для добавления данных
 
 CREATE OR REPLACE PROCEDURE add_artist(
@@ -178,3 +213,47 @@ BEGIN
     SELECT * FROM Exhibits WHERE Title ILIKE '%' || _title || '%';
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION update_feedback_length()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Users
+    SET TotalFeedbackLength = COALESCE((
+        SELECT SUM(LENGTH(Feedback))
+        FROM UserFeedback
+        WHERE UserID = NEW.UserID
+    ), 0)
+    WHERE UserID = NEW.UserID;
+
+    RETURN NULL;
+END;
+$$;
+
+CREATE TRIGGER trg_update_feedback_length
+AFTER INSERT OR UPDATE OR DELETE ON UserFeedback
+FOR EACH ROW
+EXECUTE FUNCTION update_feedback_length();
+
+CREATE OR REPLACE FUNCTION update_feedback_length()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE Users
+    SET TotalFeedbackLength = COALESCE((
+        SELECT SUM(LENGTH(Feedback))
+        FROM UserFeedback
+        WHERE UserID = NEW.UserID
+    ), 0)
+    WHERE UserID = NEW.UserID;
+
+    RETURN NULL; 
+END;
+$$;
+
+CREATE TRIGGER trg_update_feedback_length
+AFTER INSERT OR UPDATE OR DELETE ON UserFeedback
+FOR EACH ROW
+EXECUTE FUNCTION update_feedback_length();
