@@ -64,6 +64,35 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE add_user(
+    _name VARCHAR,
+    _email VARCHAR,
+    _registered_events TEXT,
+    _feedback TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO Users (Name, Email, RegisteredEvents, Feedback)
+    VALUES (_name, _email, _registered_events, _feedback);
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE add_event(
+    _title VARCHAR,
+    _date DATE,
+    _time TIME,
+    _location VARCHAR,
+    _organizer VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO Events (Title, Date, Time, Location, Organizer)
+    VALUES (_title, _date, _time, _location, _organizer);
+END;
+$$;
+
 CREATE OR REPLACE PROCEDURE update_events(
     _event_id INTEGER,
     _title VARCHAR,
