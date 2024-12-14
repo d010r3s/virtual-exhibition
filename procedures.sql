@@ -64,18 +64,26 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE add_event(
+CREATE OR REPLACE PROCEDURE update_events(
+    _event_id INTEGER,
     _title VARCHAR,
     _date DATE,
-    _time TIME,
+    _time_start TIME,
+    _time_end TIME,
     _location VARCHAR,
     _organizer VARCHAR
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO Events (Title, Date, Time, Location, Organizer)
-    VALUES (_title, _date, _time, _location, _organizer);
+    UPDATE Events
+    SET Title = _title,
+        Date = _date,
+        TimeStart = _time_start,
+        TimeEnd = _time_end,
+        Location = _location,
+        Organizer = _organizer
+    WHERE EventID = _event_id;
 END;
 $$;
 
