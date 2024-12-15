@@ -34,3 +34,5 @@ exhibit_user (не суперюзер)
 ```bash
 psql -U exhibit_user virtualexhibit
 ```
+#### Шрифт
+https://fonts.google.com/specimen/Chakra+Petch
