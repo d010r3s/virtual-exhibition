@@ -1,0 +1,84 @@
+QWidget {
+    background-color: #1e1e2e;
+    color: #f8f8f2;
+    font-family: "custom-font";
+    font-size: 10pt;
+}
+QTabBar::tab {
+    background: #44475a;
+    color: #f8f8f2;
+    padding: 8px 20px;
+    min-width: 150px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    margin-right: 2px;
+    font-size: 9pt;
+    text-transform: lowercase;
+}
+
+QTabBar::tab:selected {
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #6272a4, stop:1 #50fa7b);
+    color: #282a36;
+    font-weight: bold;
+}
+
+QTabBar::tab:hover {
+    background: #50fa7b;
+    color: #282a36;
+}
+
+QPushButton {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1,
+                                      stop:0 #3c3f41, stop:1 #4c4f51);
+    color: #ffffff;
+    border-radius: 15px;
+    border: 1px solid #2b2b3c;
+    padding: 10px 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+QPushButton:hover {
+    background-color: #5a5e62;
+    border: 1px solid #f8f8f2;
+}
+QPushButton:pressed {
+    background-color: #2b2b3c;
+}
+
+QTabWidget::pane {
+    background: #282a36;
+    border: 2px solid #44475a;
+}
+QTabBar::tab {
+    background: #44475a;
+    color: #f8f8f2;
+    padding: 8px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #6272a4, stop:1 #50fa7b);
+    color: #282a36;
+    font-weight: bold;
+}
+QTabBar::tab:hover {
+    background: #50fa7b;
+    color: #282a36;
+}
+
+QTableWidget {
+    background-color: #282a36;
+    color: #f8f8f2;
+    gridline-color: #44475a;
+    selection-background-color: #44475a;
+    border: 1px solid #3e3e55;
+}
+QHeaderView::section {
+    background-color: #44475a;
+    padding: 5px;
+    border: 1px solid #3e3e55;
+    color: #ffffff;
+}
