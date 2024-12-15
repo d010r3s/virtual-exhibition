@@ -248,4 +248,25 @@ ON Exhibits USING GIN (Title gin_trgm_ops);
 CREATE INDEX idx_events_title_trgm
 ON Events USING GIN (Title gin_trgm_ops);
 
+CREATE OR REPLACE FUNCTION update_participant_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Пересчитать количество участников для обновленного события
+    UPDATE Events
+    SET ParticipantCount = (
+        SELECT COUNT(*)
+        FROM Users
+        WHERE RegisteredEvents IS NOT NULL
+        AND RegisteredEvents ILIKE '%' || NEW.EventID || '%'
+    )
+    WHERE EventID = NEW.EventID;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_participant_count
+AFTER INSERT OR UPDATE OR DELETE ON Users
+FOR EACH ROW
+EXECUTE FUNCTION update_participant_count();
 
