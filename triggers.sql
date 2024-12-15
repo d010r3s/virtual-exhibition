@@ -9,7 +9,6 @@ BEGIN
         AND RegisteredEvents ILIKE '%' || NEW.EventID || '%'
     )
     WHERE EventID = NEW.EventID;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -33,7 +32,6 @@ BEGIN
             )
         ), ','
     );
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
