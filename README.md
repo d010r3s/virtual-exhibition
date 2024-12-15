@@ -28,3 +28,6 @@ simple database + gui (postgresql + pyqt5)
 * location (str): место
 * organizer (str): организатор
 * participantcount (int, triggered): количество участников (триггерится таблицей пользователей)
+## Работа
+#### Пользователь
+exhibit_user (не суперюзер)
