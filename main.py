@@ -1,11 +1,99 @@
 from PyQt5 import QtWidgets
 import psycopg2
-
+import os
+import sqlparse
 
 class ExhibitApp(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+
+    def create_database(self):
+        try:
+            admin_conn = psycopg2.connect(
+                user='postgres',
+                password='1234',
+                host='localhost',
+                database='postgres'
+            )
+            admin_conn.autocommit = True
+            admin_cursor = admin_conn.cursor()
+
+            admin_cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'virtualexhibit';")
+            if admin_cursor.fetchone():
+                QtWidgets.QMessageBox.information(self, "Info", "Database 'virtualexhibit' already exists!")
+                return
+
+            admin_cursor.execute("CREATE DATABASE virtualexhibit OWNER exhibit_user;")
+            QtWidgets.QMessageBox.information(self, "Success", "Database 'virtualexhibit' has been created!")
+
+            admin_cursor.close()
+            admin_conn.close()
+
+            user_conn = psycopg2.connect(
+                user='exhibit_user',
+                password='1234',
+                host='localhost',
+                database='virtualexhibit'
+            )
+            user_cursor = user_conn.cursor()
+
+            script_files = [
+                "creation.sql",
+                "indexes.sql",
+                "procedures.sql",
+                "triggers.sql"
+            ]
+
+            for script in script_files:
+                file_path = os.path.join(os.getcwd(), script)
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        sql_script = f.read()
+
+                    statements = sqlparse.split(sql_script)
+                    for statement in statements:
+                        if statement.strip():
+                            user_cursor.execute(statement)
+                    QtWidgets.QMessageBox.information(self, "Success", f"Executed {script} successfully.")
+                except FileNotFoundError:
+                    QtWidgets.QMessageBox.critical(self, "Error", f"Script '{script}' not found!")
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(self, "Error", f"Failed to execute '{script}': {str(e)}")
+
+            user_conn.commit()
+            QtWidgets.QMessageBox.information(self, "Success", "Database structure has been set up successfully!")
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to create database: {str(e)}")
+        finally:
+            if 'user_cursor' in locals():
+                user_cursor.close()
+            if 'user_conn' in locals():
+                user_conn.close()
+
+    def delete_database(self):
+        try:
+            conn = psycopg2.connect(
+                user='postgres',
+                password='1234',
+                host='localhost',
+                database='postgres'
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'virtualexhibit';")
+            if cursor.fetchone():
+                cursor.execute("DROP DATABASE virtualexhibit;")
+                QtWidgets.QMessageBox.information(self, "Success", "Database 'virtualexhibit' has been deleted!")
+            else:
+                QtWidgets.QMessageBox.information(self, "Info", "Database 'virtualexhibit' does not exist.")
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to delete database: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
 
     def initUI(self):
         self.setWindowTitle('Virtual Exhibit Management')
@@ -20,6 +108,14 @@ class ExhibitApp(QtWidgets.QMainWindow):
         self.clear_tab_button = QtWidgets.QPushButton("Clear Current Tab")
         self.clear_tab_button.clicked.connect(self.clear_current_tab)
 
+        self.create_db_button = QtWidgets.QPushButton("Create Database")
+        self.create_db_button.clicked.connect(self.create_database)
+
+        self.delete_db_button = QtWidgets.QPushButton("Delete Database")
+        self.delete_db_button.clicked.connect(self.delete_database)
+
+        top_button_layout.addWidget(self.create_db_button)
+        top_button_layout.addWidget(self.delete_db_button)
         top_button_layout.addWidget(self.clear_tab_button)
         top_button_layout.addWidget(self.clear_db_button)
 
@@ -325,7 +421,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            # Определение столбца для поиска
             search_column_mapping = {
                 "Artists": "Name",
                 "Exhibits": "Title",
@@ -337,16 +432,13 @@ class ExhibitApp(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(self, "Error", f"Unknown table: {table_name}")
                 return
 
-            # Получение поискового значения от пользователя
             value = self.get_input(f"Search in {table_name}", f"Enter {search_field}:")
             if not value:
                 return
 
-            # Выполнение SQL-запроса для поиска
             cursor.execute(f"SELECT * FROM {table_name} WHERE {search_field} ILIKE %s;", (f"%{value}%",))
             rows = cursor.fetchall()
 
-            # Обновление таблицы GUI
             table_widget.setRowCount(0)
             table_widget.setColumnCount(0)
 
@@ -375,7 +467,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            # Отображаем окно для выбора типа удаления
             choice, ok = QtWidgets.QInputDialog.getItem(
                 self,
                 "Delete Record",
@@ -386,7 +477,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
             if not ok or not choice:
                 return
 
-            # Удаление по ID
             if choice == "ID":
                 id_field_mapping = {
                     "artists": "ArtistID",
@@ -407,7 +497,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
                 cursor.execute(f"CALL delete_from_{table_name.lower()}(%s);", (record_id,))
 
-            # Удаление по имени
             elif choice == "Name":
                 name_field_mapping = {
                     "artists": "Name",
