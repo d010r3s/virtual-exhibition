@@ -81,20 +81,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE add_user(
-    _name VARCHAR,
-    _email VARCHAR,
-    _registered_events TEXT,
-    _feedback TEXT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO Users (Name, Email, RegisteredEvents, Feedback)
-    VALUES (_name, _email, _registered_events, _feedback);
-END;
-$$;
-
 -- Процедуры для удаления данных
 
 CREATE OR REPLACE PROCEDURE delete_from_artists(_artist_id INTEGER)
