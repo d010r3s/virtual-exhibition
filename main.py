@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtGui import QIcon, QFontDatabase
 import psycopg2
 import os
 import sqlparse
@@ -96,8 +97,15 @@ class ExhibitApp(QtWidgets.QMainWindow):
             conn.close()
 
     def initUI(self):
-        self.setWindowTitle('Virtual Exhibit Management')
+        app.setWindowIcon(QIcon("icon.png"))
+        self.setWindowTitle('Virtual Exhibit')
         self.setGeometry(100, 100, 1200, 800)
+        font_id = QFontDatabase.addApplicationFont("ChakraPetch-Regular.ttf")
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+
+        with open("style.qss", "r") as f:
+                style = f.read()
+                self.setStyleSheet(style.replace("custom-font", font_family))
 
         main_layout = QtWidgets.QVBoxLayout()
         top_button_layout = QtWidgets.QHBoxLayout()
@@ -136,6 +144,8 @@ class ExhibitApp(QtWidgets.QMainWindow):
         central_widget = QtWidgets.QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
+
+
 
     def create_table_tab(self, table_name):
         tab = QtWidgets.QWidget()
