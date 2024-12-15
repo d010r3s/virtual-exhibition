@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Индекс для поиска по столбцу Name в таблице Users
 CREATE INDEX idx_users_name_trgm
 ON Users USING GIN (Name gin_trgm_ops);
