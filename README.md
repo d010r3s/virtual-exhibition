@@ -31,3 +31,6 @@ simple database + gui (postgresql + pyqt5)
 ## Работа
 #### Пользователь
 exhibit_user (не суперюзер)
+```bash
+psql -U exhibit_user virtualexhibit
+```
