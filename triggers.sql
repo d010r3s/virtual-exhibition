@@ -1,14 +1,40 @@
 CREATE OR REPLACE FUNCTION update_participant_count()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE Events
-    SET ParticipantCount = (
-        SELECT COUNT(*)
-        FROM Users
-        WHERE RegisteredEvents IS NOT NULL
-        AND RegisteredEvents ILIKE '%' || NEW.EventID || '%'
-    )
-    WHERE EventID = NEW.EventID;
+    -- Обновляем счетчик для старых EventID при удалении или обновлении
+    IF TG_OP = 'UPDATE' OR TG_OP = 'DELETE' THEN
+        IF OLD.RegisteredEvents IS NOT NULL THEN
+            UPDATE Events
+            SET ParticipantCount = (
+                SELECT COUNT(*)
+                FROM Users
+                WHERE RegisteredEvents IS NOT NULL
+                AND RegisteredEvents ILIKE '%' || Events.EventID || '%'
+            )
+            WHERE EventID IN (
+                SELECT CAST(event_id AS INTEGER)
+                FROM unnest(string_to_array(OLD.RegisteredEvents, ',')) AS event_id
+            );
+        END IF;
+    END IF;
+
+    -- Обновляем счетчик для новых EventID при вставке или обновлении
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        IF NEW.RegisteredEvents IS NOT NULL THEN
+            UPDATE Events
+            SET ParticipantCount = (
+                SELECT COUNT(*)
+                FROM Users
+                WHERE RegisteredEvents IS NOT NULL
+                AND RegisteredEvents ILIKE '%' || Events.EventID || '%'
+            )
+            WHERE EventID IN (
+                SELECT CAST(event_id AS INTEGER)
+                FROM unnest(string_to_array(NEW.RegisteredEvents, ',')) AS event_id
+            );
+        END IF;
+    END IF;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
