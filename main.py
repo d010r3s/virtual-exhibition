@@ -135,23 +135,24 @@ class ExhibitApp(QtWidgets.QMainWindow):
         self.tab_exhibits = self.create_table_tab("Exhibits")
         self.tab_users = self.create_table_tab("Users")
         self.tab_events = self.create_table_tab("Events")
+        self.tab_user_events = self.create_table_tab("Registrations")
 
         self.tabs.addTab(self.tab_artists, "Artists")
         self.tabs.addTab(self.tab_exhibits, "Exhibits")
         self.tabs.addTab(self.tab_users, "Users")
         self.tabs.addTab(self.tab_events, "Events")
+        self.tabs.addTab(self.tab_user_events, "Registrations")
 
         central_widget = QtWidgets.QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
-
-
 
     def create_table_tab(self, table_name):
         tab = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout()
 
         table_widget = QtWidgets.QTableWidget()
+        table_widget.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         layout.addWidget(table_widget)
 
         buttons_layout = QtWidgets.QHBoxLayout()
@@ -203,7 +204,7 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            cursor.execute("TRUNCATE TABLE Users, Events, Exhibits, Artists RESTART IDENTITY CASCADE;")
+            cursor.execute("CALL clear_all_tables();")
             conn.commit()
             QtWidgets.QMessageBox.information(self, "Success", "All database tables have been cleared!")
         except Exception as e:
@@ -227,7 +228,7 @@ class ExhibitApp(QtWidgets.QMainWindow):
             current_tab_index = self.tabs.currentIndex()
             table_name = self.tabs.tabText(current_tab_index)
 
-            cursor.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE;")
+            cursor.execute("CALL clear_table(%s);", (table_name,))
             conn.commit()
             QtWidgets.QMessageBox.information(self, "Success", f"All records from {table_name} have been cleared!")
         except Exception as e:
@@ -248,7 +249,17 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            if table_name == "Artists":
+            if table_name == "Registrations":
+                user_id, ok = QtWidgets.QInputDialog.getInt(self, "Add Registration", "Enter User ID:")
+                if not ok:
+                    return
+                event_id, ok = QtWidgets.QInputDialog.getInt(self, "Add Registration", "Enter Event ID:")
+                if not ok:
+                    return
+                cursor.execute("CALL add_registration(%s, %s);",
+                               (user_id, event_id))
+
+            elif table_name == "Artists":
                 name = self.get_input("Add Artist", "Enter Name:")
                 if not name: return
                 country = self.get_input("Add Artist", "Enter Country:")
@@ -280,12 +291,8 @@ class ExhibitApp(QtWidgets.QMainWindow):
                 if not name: return
                 email = self.get_input("Add User", "Enter Email:")
                 if not email: return
-                registered_events = self.get_input("Add User", "Enter Event IDs (comma-separated, e.g., 1,2,3):")
-                if not registered_events: return
-                feedback = self.get_input("Add User", "Enter Feedback:")
-                if not feedback: return
-                cursor.execute("CALL add_user(%s, %s, %s, %s);",
-                               (name, email, registered_events, feedback))
+                cursor.execute("CALL add_user(%s, %s);",
+                               (name, email))
 
             elif table_name == "Events":
                 title = self.get_input("Add Event", "Enter Title:")
@@ -300,8 +307,15 @@ class ExhibitApp(QtWidgets.QMainWindow):
                 if not organizer: return
                 cursor.execute(
                     "CALL add_event(%s, %s, %s, %s, %s);",
-                    (title, date, time, location, organizer)
-                )
+                    (title, date, time, location, organizer))
+
+            elif table_name == "Registration":
+                user_id, ok = QtWidgets.QInputDialog.getInt(self, "Add EventID", "Enter UserID:")
+                if not ok: return
+                event_id, ok = QtWidgets.QInputDialog.getInt(self, "Add UserID", "Enter EventID:")
+                if not ok: return
+                cursor.execute("CALL add_registration(%s, %s);",
+                               (user_id, event_id))
 
             conn.commit()
             QtWidgets.QMessageBox.information(self, "Success", f"Record added to {table_name}")
@@ -359,13 +373,20 @@ class ExhibitApp(QtWidgets.QMainWindow):
                 if not name: return
                 email = self.get_input("Update User", "Enter Email:")
                 if not email: return
-                registered_events = self.get_input("Update User", "Enter Registered Events:")
-                if not registered_events: return
-                feedback = self.get_input("Update User", "Enter Feedback:")
-                if not feedback: return
 
-                cursor.execute("CALL update_user(%s, %s, %s, %s, %s);",
-                               (user_id, name, email, registered_events, feedback))
+                cursor.execute("CALL update_user(%s, %s, %s);",
+                               (user_id, name, email))
+
+            elif table_name == "Registrations":
+                registration_id, ok = QtWidgets.QInputDialog.getInt(self, "Update Registration", "Enter Registration ID:")
+                if not ok: return
+                user_id, ok = QtWidgets.QInputDialog.getInt(self, "Update Registration", "Enter new User ID:")
+                if not ok: return
+                event_id, ok = QtWidgets.QInputDialog.getInt(self, "Update Registration", "Enter new Event ID:")
+                if not ok: return
+
+                cursor.execute("CALL update_registration(%s, %s, %s);",
+                               (registration_id, user_id, event_id))
 
             elif table_name == "Events":
                 event_id, ok = QtWidgets.QInputDialog.getInt(self, "Update Event", "Enter EventID:")
@@ -401,7 +422,20 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            cursor.execute(f"SELECT * FROM {table_name};")
+            if table_name == "Artists":
+                cursor.execute("SELECT * FROM view_artists();")
+            elif table_name == "Exhibits":
+                cursor.execute("SELECT * FROM view_exhibits();")
+            elif table_name == "Users":
+                cursor.execute("SELECT * FROM view_users();")
+            elif table_name == "Events":
+                cursor.execute("SELECT * FROM view_events();")
+            elif table_name == "Registrations":
+                cursor.execute("SELECT * FROM view_registrations();")
+            else:
+                QtWidgets.QMessageBox.critical(self, "Error", f"Unknown table: {table_name}")
+                return
+
             rows = cursor.fetchall()
 
             table_widget.setRowCount(0)
@@ -431,24 +465,33 @@ class ExhibitApp(QtWidgets.QMainWindow):
 
         cursor = conn.cursor()
         try:
-            search_column_mapping = {
-                "Artists": "Name",
-                "Exhibits": "Title",
-                "Users": "Name",
-                "Events": "Title"
-            }
-            search_field = search_column_mapping.get(table_name)
-            if not search_field:
-                QtWidgets.QMessageBox.critical(self, "Error", f"Unknown table: {table_name}")
-                return
+            value = None
+            if table_name == "Artists":
+                value = self.get_input("Search in Artists", "Enter Name:")
+                if not value: return
+                cursor.execute("SELECT * FROM search_artists(%s);", (value,))
 
-            value = self.get_input(f"Search in {table_name}", f"Enter {search_field}:")
-            if not value:
-                return
+            elif table_name == "Exhibits":
+                value = self.get_input("Search in Exhibits", "Enter Title:")
+                if not value: return
+                cursor.execute("SELECT * FROM search_exhibits(%s);", (value,))
 
-            cursor.execute(f"SELECT * FROM {table_name} WHERE {search_field} ILIKE %s;", (f"%{value}%",))
+            elif table_name == "Users":
+                value = self.get_input("Search in Users", "Enter Name:")
+                if not value: return
+                cursor.execute("SELECT * FROM search_users(%s);", (value,))
+
+            elif table_name == "Events":
+                value = self.get_input("Search in Events", "Enter Title:")
+                if not value: return
+                cursor.execute("SELECT * FROM search_events(%s);", (value,))
+
+            elif table_name == "Registrations":
+                value, ok = QtWidgets.QInputDialog.getInt(self, "Search in Registrations", "Enter UserID:")
+                if not ok: return
+                cursor.execute("SELECT * FROM search_registrations(%s);", (value,))
+
             rows = cursor.fetchall()
-
             table_widget.setRowCount(0)
             table_widget.setColumnCount(0)
 
@@ -463,7 +506,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
             for i, row in enumerate(rows):
                 for j, col in enumerate(row):
                     table_widget.setItem(i, j, QtWidgets.QTableWidgetItem(str(col)))
-
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Failed to search records: {str(e)}")
         finally:
@@ -478,54 +520,46 @@ class ExhibitApp(QtWidgets.QMainWindow):
         cursor = conn.cursor()
         try:
             choice, ok = QtWidgets.QInputDialog.getItem(
-                self,
-                "Delete Record",
-                f"Delete by:",
-                ["ID", "Name"],
-                editable=False
+                self, "Delete Record", "Delete by:", ["ID", "Name"], editable=False
             )
             if not ok or not choice:
                 return
 
             if choice == "ID":
                 id_field_mapping = {
-                    "artists": "ArtistID",
-                    "exhibits": "ExhibitID",
-                    "events": "EventID",
-                    "users": "UserID"
+                    "artists": "delete_from_artists_by_id",
+                    "exhibits": "delete_from_exhibits_by_id",
+                    "events": "delete_from_events_by_id",
+                    "users": "delete_from_users_by_id",
+                    "registrations": "delete_from_registrations_by_id"
                 }
-                id_field = id_field_mapping.get(table_name.lower())
-                if not id_field:
-                    QtWidgets.QMessageBox.critical(self, "Error", f"Unknown table: {table_name}")
-                    return
+                procedure_name = id_field_mapping.get(table_name.lower())
 
                 record_id, ok = QtWidgets.QInputDialog.getInt(
-                    self, f"Delete {table_name}", f"Enter {id_field} of record to delete:"
+                    self, f"Delete {table_name}", f"Enter ID of record to delete:"
                 )
-                if not ok:
+                if not ok or not procedure_name:
                     return
 
-                cursor.execute(f"CALL delete_from_{table_name.lower()}(%s);", (record_id,))
+                cursor.execute(f"CALL {procedure_name}(%s);", (record_id,))
 
             elif choice == "Name":
                 name_field_mapping = {
-                    "artists": "Name",
-                    "exhibits": "Title",
-                    "events": "Title",
-                    "users": "Name"
+                    "artists": "delete_from_artists_by_name",
+                    "exhibits": "delete_from_exhibits_by_name",
+                    "events": "delete_from_events_by_name",
+                    "users": "delete_from_users_by_name",
+                    "registrations": "delete_from_registrations_by_userid"
                 }
-                name_field = name_field_mapping.get(table_name.lower())
-                if not name_field:
-                    QtWidgets.QMessageBox.critical(self, "Error", f"Unknown table: {table_name}")
-                    return
+                procedure_name = name_field_mapping.get(table_name.lower())
 
                 name, ok = QtWidgets.QInputDialog.getText(
-                    self, f"Delete {table_name}", f"Enter {name_field} of record to delete:"
+                    self, f"Delete {table_name}", "Enter Name/Title:"
                 )
-                if not ok or not name.strip():
+                if not ok or not name.strip() or not procedure_name:
                     return
 
-                cursor.execute(f"DELETE FROM {table_name} WHERE {name_field} ILIKE %s;", (name.strip(),))
+                cursor.execute(f"CALL {procedure_name}(%s);", (name.strip(),))
 
             conn.commit()
             QtWidgets.QMessageBox.information(self, "Success", f"Record deleted from {table_name}")
@@ -537,7 +571,6 @@ class ExhibitApp(QtWidgets.QMainWindow):
         finally:
             cursor.close()
             conn.close()
-
 
 app = QtWidgets.QApplication([])
 window = ExhibitApp()
