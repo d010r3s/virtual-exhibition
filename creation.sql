@@ -29,6 +29,11 @@ CREATE TABLE Users (
     UserID SERIAL PRIMARY KEY,
     Name VARCHAR(255) NOT NULL,
     Email VARCHAR(255) UNIQUE NOT NULL,
-    RegisteredEvents TEXT,
-    Feedback TEXT
+    RegistrationCount INTEGER DEFAULT 0
+);
+
+CREATE TABLE Registrations (
+    RegistrationID SERIAL PRIMARY KEY,
+    UserID INTEGER REFERENCES Users(UserID) ON DELETE CASCADE,
+    EventID INTEGER REFERENCES Events(EventID) ON DELETE CASCADE
 );
